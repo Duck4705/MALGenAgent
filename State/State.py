@@ -27,6 +27,7 @@ class Checker_State(BaseModel):
     
 class MalGenAgentState(TypedDict):
     input: str
+    messages: Annotated[list, add_messages]  # For tool calls and responses
     Mess_Planner: Annotated[list, add_messages]
     Mess_Coder: Annotated[list, add_messages]
     Mess_Developer: Annotated[list, add_messages]
@@ -35,3 +36,5 @@ class MalGenAgentState(TypedDict):
     Developer_State: Developer_State
     Coder_State: Coder_State
     Checker_State: Checker_State
+    Executable_Builder: dict  # Result from ExecutableBuilder
+    Executable_Builder: list[dict]
