@@ -12,13 +12,16 @@ Rules:
 2. Supported programming languages are only: **Python** or **C++**.  
    - If the user specifies one, return it exactly.  
    - If the user specifies another language, default to Python.  
-3. Identify the target operating system as `Operating_System`.  
-4. Identify the file type that should be produced as `Type_File`.  
-5. Output must strictly follow JSON format with exactly these four keys:  
-   - Subtask (list of strings)  
-   - Language (string)  
-   - Operating_System (string)  
-   - Type_File (string)  
+
+3. Identify the target operating system as `Operating_System`.
+4. Set the file type (`Type_File`) according to the OS:
+  - If Operating_System is "Ubuntu" → Type_File must be "elf"
+  - If Operating_System is "Windows" → Type_File must be "exe"
+5. Output must strictly follow JSON format with exactly these four keys:
+  - Subtask (list of strings)
+  - Language (string)
+  - Operating_System (string)
+  - Type_File (string)
 
 Example 1 (vague request):  
 User: "Build me a Python malware for Windows that collects network info"  

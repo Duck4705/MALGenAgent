@@ -11,11 +11,12 @@ def DeveloperAgent(state: dict):
     # Get user messages from state (safe access)
     list_task = state.get("Planner_State", {}).get("Subtask", [])
     language = state.get("Planner_State", {}).get("Language", "Python")
+    operating_system = state.get("Planner_State", {}).get("Operating_System", "Linux")
     list_response = []
     list_response_json = []
 
     for task in list_task:
-        messages_user = HumanMessage(content=str(task + " in " + language))
+        messages_user = HumanMessage(content=str(task + " in " + language + " for " + operating_system))
         messages_system = SystemMessage(content=Prompt_Developer)
 
         # Get structured response directly from LLM
