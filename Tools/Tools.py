@@ -102,24 +102,18 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: str = ""):
                 output_path = Path("dist_C++") / output_name
 
             if output_path.exists():
-                print(f"[ExecutableBuilder] ✅ Build successful! Executable saved to: {output_path}")
+                print(f"[ExecutableBuilder] Build successful! Executable saved to: {output_path}")
                 
                 # Only return simple status message for terminal
                 return {"status": "success", "message": f"{language} executable built successfully: {output_name}"}
             else:
                 return {"status": "error", "message": "Build completed but output file not found"}
         else:
-            # Get full error output for detailed analysis
-            error_output = ""
-            if result.stderr:
-                error_output += result.stderr
-            if result.stdout:
-                error_output += f"\n{result.stdout}" if error_output else result.stdout
-            
+            error_msg = result.stderr if result.stderr else result.stdout
             if language.lower() == "python":
-                return {"status": "error", "message": f"PyInstaller failed:\n{error_output}"}
+                return {"status": "error", "message": f"PyInstaller failed: {error_msg}"}
             else:
-                return {"status": "error", "message": f"g++ compilation failed:\n{error_output}"}
+                return {"status": "error", "message": f"g++ compilation failed: {error_msg}"}
     
     except FileNotFoundError as e:
         if language.lower() == "python":
@@ -157,7 +151,7 @@ def execute_command(command: str):
         }
     
     try:
-        print(f"[execute_command] 🔧 Executing: {command}")
+        print(f"[execute_command] Executing: {command}")
         
         # Execute the command with safety measures
         result = subprocess.run(
@@ -176,7 +170,7 @@ def execute_command(command: str):
             if result.stderr.strip():
                 output += f"\n{result.stderr.strip()}"
                 
-            print(f"[execute_command] ✅ Command completed successfully")
+            print(f"[execute_command] Command completed successfully")
             return {
                 "status": "success",
                 "message": output if output else "Command executed successfully (no output)"
@@ -186,20 +180,20 @@ def execute_command(command: str):
             if not error_msg:
                 error_msg = f"Command failed with return code {result.returncode}"
                 
-            print(f"[execute_command] ❌ Command failed: {error_msg}")
+            print(f"[execute_command]  Command failed: {error_msg}")
             return {
                 "status": "error",
                 "message": error_msg
             }
         
     except subprocess.TimeoutExpired:
-        print(f"[execute_command] ⏰ Command timed out")
+        print(f"[execute_command] Command timed out")
         return {
             "status": "error",
             "message": f"Command timed out after 2 minutes: {command}"
         }
     except Exception as e:
-        print(f"[execute_command] 💥 Exception: {str(e)}")
+        print(f"[execute_command] Exception: {str(e)}")
         return {
             "status": "error", 
             "message": f"Command execution failed: {str(e)}"
