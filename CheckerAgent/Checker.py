@@ -9,12 +9,19 @@ llm = ChatOllama(model="qwen2.5-coder:7b", temperature=0.1)
 llm_with_tools = llm.bind_tools([execute_command])
 
 def CheckerAgent(state: dict):
-    # Get input from Execute_Builder result
-    input_data = str(state.get("Executable_Builder", {}))
+    # Get input from Execute_Builder result - ensure it's properly formatted JSON
+    executable_result = state.get("Executable_Builder", {})
+    
+    # If it's already a dict, convert to proper JSON format
+    if isinstance(executable_result, dict):
+        input_data = str(executable_result)
+    else:
+        input_data = str(executable_result)
+    
+    print(f"[CheckerAgent] Processing executable builder result: {input_data}")
+    
     messages_user = HumanMessage(content=input_data)
     messages_system = SystemMessage(content=Prompt_Checker)
-    
-    print(f"[CheckerAgent] Processing executable builder result...")
     
     # Get response from LLM with tools
     response = llm_with_tools.invoke([messages_system, messages_user])
@@ -29,19 +36,33 @@ def CheckerAgent(state: dict):
     else:
         # No tool calls, try to extract checker state from content
         try:
-            # Simple parsing of response content to determine state
-            content = response.content.lower()
+            # Parse JSON response from LLM if possible
+            content = response.content.strip()
+            print(f"[CheckerAgent] LLM Response: {content}")
             
-            if "finished build" in content:
-                checker_message = "finished build"
-            elif "success download lib and need to rebuild" in content:
-                checker_message = "success download lib and need to rebuild"
-            elif "error" in content or "fail" in content:
-                checker_message = "error"
-            else:
-                checker_message = "processing"
+            # Try to parse as JSON first
+            import json
+            try:
+                parsed_response = json.loads(content)
+                if isinstance(parsed_response, dict) and "message" in parsed_response:
+                    checker_message = parsed_response["message"]
+                    print(f"[CheckerAgent] Parsed JSON message: {checker_message}")
+                else:
+                    raise ValueError("Invalid JSON structure")
+            except (json.JSONDecodeError, ValueError):
+                # Fallback to simple text parsing
+                content_lower = content.lower()
+                if "finished build" in content_lower:
+                    checker_message = "finished build"
+                elif "success download lib and need to rebuild" in content_lower:
+                    checker_message = "success download lib and need to rebuild"
+                elif "unhandled error" in content_lower:
+                    checker_message = "error"
+                else:
+                    # For syntax errors or detailed feedback, keep the full content
+                    checker_message = content
                 
-            print(f"[CheckerAgent] Extracted message: {checker_message}")
+                print(f"[CheckerAgent] Fallback parsed message: {checker_message}")
                 
             # Create Checker_State
             checker_dict = {"message": checker_message}

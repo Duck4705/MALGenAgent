@@ -6,12 +6,12 @@ from pathlib import Path
 
 def ExecutableBuilder(type_file: str, language: str = "Python", code: str = ""):
     """
-    Build Python code to executable using PyInstaller
+    Build code to executable using PyInstaller (Python) or g++ (C++)
     
     Args:
-        type_file: Type of executable ("elf" for Linux)
-        language: Programming language (currently only supports "Python")
-        code: Python code to build into executable
+        type_file: Type of executable ("elf" for Linux, "exe" for Windows)
+        language: Programming language ("Python" or "C++")
+        code: Source code to build into executable
     
     Returns:
         dict: Build result with status and output path
@@ -21,28 +21,36 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: str = ""):
     if not code or not code.strip():
         return {"status": "error", "message": "code is required"}
     
-    if language.lower() != "python":
-        return {"status": "error", "message": f"Language '{language}' not supported. Only Python is supported."}
+    if language.lower() not in ["python", "c++"]:
+        return {"status": "error", "message": f"Language '{language}' not supported. Supported: Python, C++"}
     
-    if type_file.lower() != "elf":
-        return {"status": "error", "message": f"Type '{type_file}' not supported. Only 'elf' is supported."}
+    if type_file.lower() not in ["elf", "exe"]:
+        return {"status": "error", "message": f"Type '{type_file}' not supported. Supported: elf, exe"}
     
     # Convert JSON dump format (\n) to actual newlines
     try:
         # Replace \n with actual newlines to format code properly
         formatted_code = code.replace('\\n', '\n')
-        print(f"[ExecutableBuilder] Formatted code from JSON dump")
+        print(f"[ExecutableBuilder] Formatted {language} code from JSON dump")
         
         code_bytes = formatted_code.encode('utf-8')
         code_hash = hashlib.md5(code_bytes).hexdigest()[:8]  # Use first 8 chars of MD5
-        output_name = f"malware_{code_hash}"
         
         # Create tmp_file directory if it doesn't exist
         tmp_dir = Path("tmp_file")
         tmp_dir.mkdir(exist_ok=True)
         
-        # Create temporary Python file in tmp_file directory
-        temp_filename = tmp_dir / f"temp_{code_hash}.py"
+        # Create temporary file based on language
+        if language.lower() == "python":
+            temp_filename = tmp_dir / f"temp_{code_hash}.py"
+            output_name = f"malware_{code_hash}"
+        else:  # C++
+            temp_filename = tmp_dir / f"temp_{code_hash}.cpp"
+            if type_file.lower() == "exe":
+                output_name = f"malware_{code_hash}.exe"
+            else:
+                output_name = f"malware_{code_hash}.elf"
+        
         with open(temp_filename, 'w', encoding='utf-8') as f:
             f.write(formatted_code)  # Use formatted code with proper newlines
         
@@ -51,20 +59,30 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: str = ""):
     except Exception as e:
         return {"status": "error", "message": f"Failed to create temporary file: {str(e)}"}
     
-    # Build PyInstaller command for ELF
-    cmd = [
-        "pyinstaller", 
-        "--onefile",           # Create single executable file
-        "--name", output_name, # Output name
-        "--clean",             # Clean cache
-        "--noconfirm",         # Overwrite without asking
-        str(temp_filename)     # Use temporary file (convert Path to string)
-    ]
+    # Build command based on language
+    if language.lower() == "python":
+        # Build PyInstaller command for Python
+        cmd = [
+            "pyinstaller", 
+            "--onefile",           # Create single executable file
+            "--name", output_name, # Output name
+            "--clean",             # Clean cache
+            "--noconfirm",         # Overwrite without asking
+            str(temp_filename)     # Use temporary file (convert Path to string)
+        ]
+    else:  # C++
+        # Build g++ command for C++
+        if type_file.lower() == "exe":
+            # Build for Windows using mingw cross-compiler
+            cmd = ["x86_64-w64-mingw32-g++", str(temp_filename), "-o", output_name]
+        else:  # elf
+            # Build for Linux using g++
+            cmd = ["g++", str(temp_filename), "-o", output_name]
     
     try:
-        print(f"[ExecutableBuilder] Building code -> {output_name} (ELF)")
+        print(f"[ExecutableBuilder] Building {language} code -> {output_name} ({type_file.upper()})")
         
-        # Run PyInstaller
+        # Run the build command
         result = subprocess.run(cmd, capture_output=True, text=True)
         
         # Clean up temporary file
@@ -75,21 +93,41 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: str = ""):
             pass  # Don't fail if temp file cleanup fails
         
         if result.returncode == 0:
-            # Check if output file exists in dist folder
-            output_path = Path("dist") / output_name
-            
+            # Check if output file exists
+            if language.lower() == "python":
+                # Python output goes to dist folder
+                output_path = Path("dist") / output_name
+            else:
+                # C++ output goes to dist_C++ folder
+                output_path = Path("dist_C++") / output_name
+
             if output_path.exists():
                 print(f"[ExecutableBuilder] ✅ Build successful! Executable saved to: {output_path}")
                 
                 # Only return simple status message for terminal
-                return {"status": "success", "message": f"Executable built successfully: {output_name}"}
+                return {"status": "success", "message": f"{language} executable built successfully: {output_name}"}
             else:
                 return {"status": "error", "message": "Build completed but output file not found"}
         else:
-            return {"status": "error", "message": f"PyInstaller failed: {result.stderr}"}
+            # Get full error output for detailed analysis
+            error_output = ""
+            if result.stderr:
+                error_output += result.stderr
+            if result.stdout:
+                error_output += f"\n{result.stdout}" if error_output else result.stdout
+            
+            if language.lower() == "python":
+                return {"status": "error", "message": f"PyInstaller failed:\n{error_output}"}
+            else:
+                return {"status": "error", "message": f"g++ compilation failed:\n{error_output}"}
     
-    except FileNotFoundError:
-        return {"status": "error", "message": "PyInstaller not found. Install with: pip install pyinstaller"}
+    except FileNotFoundError as e:
+        if language.lower() == "python":
+            return {"status": "error", "message": "PyInstaller not found. Install with: pip install pyinstaller"}
+        elif "x86_64-w64-mingw32-g++" in str(e):
+            return {"status": "error", "message": "MinGW cross-compiler not found. Install with: sudo apt install gcc-mingw-w64"}
+        else:
+            return {"status": "error", "message": "g++ compiler not found. Install with: sudo apt install g++"}
     except Exception as e:
         # Clean up temporary file on error
         try:

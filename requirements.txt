@@ -5,3 +5,4 @@ langchain-openai
 tavily-python 
 langgraph-cli[inmem] 
 langchain-ollama
+pyinstaller

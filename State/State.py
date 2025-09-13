@@ -37,4 +37,3 @@ class MalGenAgentState(TypedDict):
     Coder_State: Coder_State
     Checker_State: Checker_State
     Executable_Builder: dict  # Result from ExecutableBuilder
-    Executable_Builder: list[dict]
