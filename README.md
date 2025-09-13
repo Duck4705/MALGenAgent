@@ -59,6 +59,7 @@ Khởi động chương trình
 ```
 langgraph dev
 ```
+Bạn hãy nhập đầu vào của bạn tại dòng INPUT  
 **Lưu ý:** Hiện tại MalGenAgent chỉ hỗ trợ build ra file exe chỉ dành cho ngôn ngữ C++, còn Python chỉ hỗ trợ build ra elf. Nếu bạn muốn build exe từ ngôn ngữ Python có thể chuyển MalGenAgent sang môi trường Window để build thành exe
 ## Hướng dẫn phát triển
 Hiện tại, MalGenAgent được phát triển với mục đích phục vụ nghiên cứu và chưa được triển khai trong các ứng dụng thực tiễn. Hệ thống hiện hỗ trợ hai ngôn ngữ lập trình chính là Python và C++. Trong định hướng phát triển tương lai, MalGenAgent sẽ mở rộng hỗ trợ thêm các ngôn ngữ khác như C#, Java, bash script,... nhằm đáp ứng đa dạng nhu cầu nghiên cứu và ứng dụng thực tế.
