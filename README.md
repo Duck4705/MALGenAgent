@@ -40,7 +40,26 @@ Cài đặt mingw-w64 để build exe trên môi trường linux
 ```bash
 sudo apt install mingw-w64 -y
 ```
-**Lưu ý:** Hiện tại MalgenAgent chỉ hỗ trợ build ra file exe chỉ dành cho ngôn ngữ C++, còn Python chỉ hỗ trợ build ra elf. Nếu bạn muốn build exe từ ngôn ngữ Python có thể chuyển MalGenAgent sang môi trường Window để build thành exe
+Tạo file .env
+```bash
+echo -e "LANGCHAIN_API_KEY=\nLANGCHAIN_TRACING_V2=true" > .env
+```
+Tạo tài khoản langchain và lấy LANGCHAIN_API_KEY ở https://www.langchain.com/
+```.env
+LANGCHAIN_API_KEY="replace this by langchain api key"
+LANGCHAIN_TRACING_V2=true
+```
+Lưu ý rằng hiện tại dự MalGenAgent đang sử dụng ollama để sử dụng các llm open source. Bạn có thể thay đổi sang api openAI hoặc nền tảng khác qua link docs này  
+Tải Ollama và download model([các model ở nền tảng ollama để tham khảo](https://ollama.com/search))
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull qwen2.5-coder:7b
+```
+Khởi động chương trình 
+```
+langgraph dev
+```
+**Lưu ý:** Hiện tại MalGenAgent chỉ hỗ trợ build ra file exe chỉ dành cho ngôn ngữ C++, còn Python chỉ hỗ trợ build ra elf. Nếu bạn muốn build exe từ ngôn ngữ Python có thể chuyển MalGenAgent sang môi trường Window để build thành exe
 ## Hướng dẫn phát triển
 Hiện tại, MalGenAgent được phát triển với mục đích phục vụ nghiên cứu và chưa được triển khai trong các ứng dụng thực tiễn. Hệ thống hiện hỗ trợ hai ngôn ngữ lập trình chính là Python và C++. Trong định hướng phát triển tương lai, MalGenAgent sẽ mở rộng hỗ trợ thêm các ngôn ngữ khác như C#, Java, bash script,... nhằm đáp ứng đa dạng nhu cầu nghiên cứu và ứng dụng thực tế.
 
