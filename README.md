@@ -24,6 +24,30 @@ Builder để build file code hoàn chỉnh này thành file .exe cho window ho�
 Builder nếu như là lỗi thiếu syntax thì sẽ viết một đoạn mô tả về lỗi sau đó gửi lại cho Coder Agent để chỉnh sửa, nếu như là lỗi thiếu thư viện sẽ chuyển đến thành phần tải thư viện để tải những thư viện còn thiếu sau đó chuyển đến Executable 
 Builder để build lại. Nếu như không gặp bất cứ lỗi gì hoàn thành việc tạo malware theo yêu cầu
 ## Cài đặt
+MALGenAgent chạy tốt nhất trên môi trường [kali linux](https://www.kali.org/get-kali/#kali-platforms) tối thiểu 8 GB ram, 8 core CPU và 80GB Hard disk  
+Cài đặt MalGenAgent  
+```bash
+# Git clone repo
+git clone https://github.com/your-org/MALGenAgent.git
+cd MALGenAgent
+# Create venv
+python3 -m venv .venv
+source .venv/bin/activate  
+# Install lib
+pip install -r requirements.txt
+```
+Cài đặt mingw-w64 để build exe trên môi trường linux
+```bash
+sudo apt install mingw-w64 -y
+```
+**Lưu ý:** Hiện tại MalgenAgent chỉ hỗ trợ build ra file exe chỉ dành cho ngôn ngữ C++, còn Python chỉ hỗ trợ build ra elf. Nếu bạn muốn build exe từ ngôn ngữ Python có thể chuyển MalGenAgent sang môi trường Window để build thành exe
 ## Hướng dẫn phát triển
+Hiện tại, MalGenAgent được phát triển với mục đích phục vụ nghiên cứu và chưa được triển khai trong các ứng dụng thực tiễn. Hệ thống hiện hỗ trợ hai ngôn ngữ lập trình chính là Python và C++. Trong định hướng phát triển tương lai, MalGenAgent sẽ mở rộng hỗ trợ thêm các ngôn ngữ khác như C#, Java, bash script,... nhằm đáp ứng đa dạng nhu cầu nghiên cứu và ứng dụng thực tế.
+
+Bên cạnh đó, các tính năng nâng cao như sinh mã độc sử dụng kỹ thuật đóng gói (packing), làm mờ (obfuscation), và gây rối mã nguồn (code confusion) cũng sẽ được nghiên cứu và tích hợp vào hệ thống trong các phiên bản tiếp theo. Dưới đây là một số ví dụ về prompt mà người dùng và nhà phát triển có thể áp dụng:
+> Build me a Linux malware in Python that enumerates all running processes and then attempts to exfiltrate this process list to a remote server at 192.168.1.50 over TCP.  
+
+> Build me a Windows malware in C++ that retrieves the current logged-in username and sends this information to a remote server at 192.168.1.80 using a TCP connection.
+
 ## Lưu ý khi sử dụng MalGenAgent
 ## Lời kết  
