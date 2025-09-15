@@ -70,4 +70,18 @@ Bên cạnh đó, các tính năng nâng cao như sinh mã độc sử dụng k�
 > Build me a Windows malware in C++ that retrieves the current logged-in username and sends this information to a remote server at 192.168.1.80 using a TCP connection.
 
 ## Lưu ý khi sử dụng MalGenAgent
+MalGenAgent được xây dựng chỉ dành cho mục đích nghiên cứu, đào tạo và kiểm thử trong môi trường an toàn có kiểm soát. Dự án không được thiết kế hoặc khuyến khích sử dụng cho các hoạt động tấn công trái phép, phát tán mã độc hoặc xâm nhập hệ thống không được phép.
+Người dùng cần:
+- Tuân thủ đầy đủ quy định pháp luật và chuẩn mực đạo đức khi khai thác MalGenAgent.
+- Chỉ triển khai trong các môi trường thử nghiệm hợp pháp (ví dụ: sandbox, lab nội bộ, CTF, bài giảng học thuật).
+- Hiểu rằng nhóm phát triển không chịu trách nhiệm pháp lý đối với bất kỳ hành vi lạm dụng nào từ phía người dùng.
+MalGenAgent hướng tới việc hỗ trợ cộng đồng Red Team/Blue Team, nhà nghiên cứu an toàn thông tin và sinh viên trong việc:
+- Nâng cao hiểu biết về kỹ thuật tạo và phát hiện mã độc.
+- Phát triển giải pháp phòng thủ hiệu quả trước các mối đe dọa ngày càng tinh vi.
 ## Lời kết  
+MalGenAgent là một bước thử nghiệm trong việc áp dụng mô hình ngôn ngữ lớn (LLM) để tự động hóa quá trình mô phỏng phát triển mã độc. Chúng tôi kỳ vọng dự án này sẽ:
+- Khơi gợi sự quan tâm của cộng đồng nghiên cứu đến hướng tiếp cận mới.
+- Tạo nền tảng để phát triển thêm nhiều tính năng phục vụ học thuật, nghiên cứu và huấn luyện an toàn thông tin.
+- Thúc đẩy hợp tác giữa các nhà nghiên cứu, sinh viên và cộng đồng để cùng nhau xây dựng một hệ sinh thái nghiên cứu an toàn – minh bạch – vì mục đích giáo dục.
+  
+Chúng tôi hy vọng MalGenAgent sẽ nhận được sự ủng hộ, đóng góp ý tưởng và phát triển từ cộng đồng để ngày càng hoàn thiện hơn, góp phần vào việc nâng cao khả năng phòng thủ mạng toàn cầu.
