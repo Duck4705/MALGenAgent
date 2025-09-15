@@ -10,11 +10,18 @@ from Tools.Tools import execute_command, ExecutableBuilder
 
 #Execute Builder Node
 def Execute_Builder(state: dict):
-    type_file = state.get("Planner_State", {}).get("Type_File", "")
-    language = state.get("Planner_State", {}).get("Language", "").lower()
-    code = state.get("Coder_State", {}).get("Code", "")
+    # Access BaseModel attributes properly
+    planner_state = state.get("Planner_State")
+    coder_state = state.get("Coder_State")
+    
+    type_file = planner_state.Type_File if planner_state else ""
+    language = planner_state.Language.lower() if planner_state else ""
+    code = coder_state.Code if coder_state else ""
     
     print(f"[Execute_Builder] Building: type={type_file}, lang={language}")
+    print(f"[Execute_Builder] Code length: {len(code) if code else 0} chars")
+    print(f"[Execute_Builder] Code preview: {code[:100] if code else 'NO CODE'}...")
+    
     result = ExecutableBuilder(type_file, language, code)
     
     return {"Executable_Builder": result}
@@ -43,7 +50,7 @@ builder.add_conditional_edges(
     should_continue,
     {
         "tools": "ToolsNode",
-        "coder": "CoderAgent",
+        "execute_builder": "Execute_Builder",
         "end": END
     }
 )

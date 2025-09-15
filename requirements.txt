@@ -6,3 +6,4 @@ tavily-python
 langgraph-cli[inmem] 
 langchain-ollama
 pyinstaller
+python-dotenv

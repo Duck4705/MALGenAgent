@@ -36,6 +36,10 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: str = ""):
         code_bytes = formatted_code.encode('utf-8')
         code_hash = hashlib.md5(code_bytes).hexdigest()[:8]  # Use first 8 chars of MD5
         
+        # Debug: Print code hash and preview
+        print(f"[ExecutableBuilder] Code hash: {code_hash}")
+        print(f"[ExecutableBuilder] Code preview: {formatted_code[:100]}...")
+        
         # Create tmp_file directory if it doesn't exist
         tmp_dir = Path("tmp_file")
         tmp_dir.mkdir(exist_ok=True)
@@ -51,16 +55,28 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: str = ""):
             else:
                 output_name = f"malware_{code_hash}.elf"
         
+        # Check if temp file already exists and remove it
+        if temp_filename.exists():
+            print(f"[ExecutableBuilder] Warning: Temp file {temp_filename} already exists, removing...")
+            temp_filename.unlink()
+        
         with open(temp_filename, 'w', encoding='utf-8') as f:
             f.write(formatted_code)  # Use formatted code with proper newlines
         
         print(f"[ExecutableBuilder] Created temporary file: {temp_filename}")
+        print(f"[ExecutableBuilder] File size: {temp_filename.stat().st_size} bytes")
         
     except Exception as e:
         return {"status": "error", "message": f"Failed to create temporary file: {str(e)}"}
     
     # Build command based on language
     if language.lower() == "python":
+        # Clean any previous build artifacts more aggressively
+        build_dir = Path("build")
+        if build_dir.exists():
+            shutil.rmtree(build_dir, ignore_errors=True)
+            print(f"[ExecutableBuilder] Cleaned build directory")
+        
         # Build PyInstaller command for Python
         cmd = [
             "pyinstaller", 
@@ -68,13 +84,38 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: str = ""):
             "--name", output_name, # Output name
             "--clean",             # Clean cache
             "--noconfirm",         # Overwrite without asking
+            "--workpath", f"./build/{output_name}",  # Unique work path per build
             str(temp_filename)     # Use temporary file (convert Path to string)
         ]
     else:  # C++
+        # Clean any existing C++ output files first
+        current_output = Path(output_name)
+        if current_output.exists():
+            current_output.unlink()
+            print(f"[ExecutableBuilder] Removed existing C++ output: {output_name}")
+        
+        # Also check and clean dist_C++ directory
+        dist_cpp_dir = Path("dist_C++") 
+        final_output_path = dist_cpp_dir / output_name
+        if final_output_path.exists():
+            final_output_path.unlink()
+            print(f"[ExecutableBuilder] Removed existing C++ output from dist_C++: {output_name}")
+        
         # Build g++ command for C++
         if type_file.lower() == "exe":
-            # Build for Windows using mingw cross-compiler
-            cmd = ["x86_64-w64-mingw32-g++", str(temp_filename), "-o", output_name]
+            # Build for Windows using mingw cross-compiler with Windows libraries
+            cmd = [
+                "x86_64-w64-mingw32-g++", 
+                str(temp_filename), 
+                "-o", output_name,
+                "-lws2_32",      # Winsock2 library
+                "-lwininet",     # WinINet library  
+                "-ladvapi32",    # Advanced API library
+                "-luser32",      # User32 library
+                "-lkernel32",    # Kernel32 library
+                "-static-libgcc", # Static linking for better compatibility
+                "-static-libstdc++"
+            ]
         else:  # elf
             # Build for Linux using g++
             cmd = ["g++", str(temp_filename), "-o", output_name]
@@ -93,21 +134,35 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: str = ""):
             pass  # Don't fail if temp file cleanup fails
         
         if result.returncode == 0:
-            # Check if output file exists
+            # Check if output file exists and move to appropriate folder
             if language.lower() == "python":
-                # Python output goes to dist folder
+                # Python output goes to dist folder (handled by PyInstaller)
                 output_path = Path("dist") / output_name
+                if output_path.exists():
+                    print(f"[ExecutableBuilder] Build successful! Executable saved to: {output_path}")
+                    return {"status": "success", "message": f"{language} executable built successfully: {output_name}"}
+                else:
+                    return {"status": "error", "message": "Build completed but Python executable not found in dist folder"}
             else:
-                # C++ output goes to dist_C++ folder
-                output_path = Path("dist_C++") / output_name
-
-            if output_path.exists():
-                print(f"[ExecutableBuilder] Build successful! Executable saved to: {output_path}")
+                # C++ output - check if file exists in current directory first
+                current_output = Path(output_name)
+                dist_cpp_dir = Path("dist_C++")
                 
-                # Only return simple status message for terminal
-                return {"status": "success", "message": f"{language} executable built successfully: {output_name}"}
-            else:
-                return {"status": "error", "message": "Build completed but output file not found"}
+                # Create dist_C++ directory if it doesn't exist
+                dist_cpp_dir.mkdir(exist_ok=True)
+                
+                if current_output.exists():
+                    # Move to dist_C++ folder
+                    final_path = dist_cpp_dir / output_name
+                    try:
+                        shutil.move(str(current_output), str(final_path))
+                        print(f"[ExecutableBuilder] Build successful! Executable moved to: {final_path}")
+                        return {"status": "success", "message": f"{language} executable built successfully: {output_name}"}
+                    except Exception as e:
+                        print(f"[ExecutableBuilder] Warning: Could not move file to dist_C++: {e}")
+                        return {"status": "success", "message": f"{language} executable built successfully: {output_name}"}
+                else:
+                    return {"status": "error", "message": "Build completed but C++ executable not found"}
         else:
             error_msg = result.stderr if result.stderr else result.stdout
             if language.lower() == "python":
@@ -139,7 +194,7 @@ def execute_command(command: str):
     
     Args:
         command: The shell command to execute as a string
-    
+
     Returns:
         dict: Contains status (success/error) and message with output
     """
@@ -149,9 +204,16 @@ def execute_command(command: str):
             "status": "error",
             "message": "Command cannot be empty"
         }
-    
+
     try:
         print(f"[execute_command] Executing: {command}")
+        
+        # Handle sudo commands - automatically provide password
+        if command.strip().startswith("sudo"):
+            print("[execute_command] Detected sudo command - providing password automatically")
+            # Use echo to pipe password to sudo -S
+            modified_command = f"echo 'kali' | sudo -S {command[4:].strip()}"
+            command = modified_command
         
         # Execute the command with safety measures
         result = subprocess.run(
@@ -159,12 +221,10 @@ def execute_command(command: str):
             shell=True, 
             capture_output=True, 
             text=True, 
-            timeout=120,  # 2 minute timeout
+            timeout=600,  # 10 minute timeout for package installation
             encoding='utf-8',
             errors='replace'  # Handle encoding errors gracefully
-        )
-        
-        # Format result - combine stdout and stderr if needed
+        )        # Format result - combine stdout and stderr if needed
         if result.returncode == 0:
             output = result.stdout.strip()
             if result.stderr.strip():
@@ -190,7 +250,7 @@ def execute_command(command: str):
         print(f"[execute_command] Command timed out")
         return {
             "status": "error",
-            "message": f"Command timed out after 2 minutes: {command}"
+            "message": f"Command timed out after 10 minutes: {command}"
         }
     except Exception as e:
         print(f"[execute_command] Exception: {str(e)}")

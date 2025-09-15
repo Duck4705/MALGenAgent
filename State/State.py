@@ -23,6 +23,7 @@ class Coder_State(BaseModel):
 # Checker State
 class Checker_State(BaseModel):
     message: str
+    Code: Optional[str] = None  # For code fixes
 
     
 class MalGenAgentState(TypedDict):
@@ -37,3 +38,4 @@ class MalGenAgentState(TypedDict):
     Coder_State: Coder_State
     Checker_State: Checker_State
     Executable_Builder: dict  # Result from ExecutableBuilder
+    Tool_Results: list[dict]  # Results from tool executions

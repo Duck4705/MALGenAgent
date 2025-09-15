@@ -3,89 +3,108 @@ from langchain_ollama import ChatOllama
 from State.State import MalGenAgentState, Checker_State
 from Prompt.Prompt import Prompt_Checker
 from Tools.Tools import execute_command 
+from Tools.ToolHelper import create_llm_with_tools, is_tool_call_message, extract_tool_calls
+from langchain_openai import ChatOpenAI
+from dotenv import load_dotenv
+import os
+import re
+load_dotenv()
 
-# Create LLM with tools (for tool calling)
-llm = ChatOllama(model="qwen2.5-coder:7b", temperature=0.1)
-llm_with_tools = llm.bind_tools([execute_command])
+OLLAMA = os.getenv("OLLAMA", "false").lower()
+MODEL = os.getenv("MODEL", "Qwen2.5-coder:7b")
+BASE_URL = os.getenv("BASE_URL", "")
+API_KEY = os.getenv("API_KEY", "")
+if OLLAMA == "true":
+    base_llm = ChatOllama(model=MODEL, temperature=0.1)
+else:
+    if BASE_URL:
+        base_llm = ChatOpenAI(model=MODEL, temperature=0.1, base_url=BASE_URL, api_key=API_KEY)
+    else:
+        base_llm = ChatOpenAI(model=MODEL, temperature=0.1, api_key=API_KEY)
+
+# Create LLM with proper tool binding using helper
+llm_with_tools = create_llm_with_tools(base_llm)
 
 def CheckerAgent(state: dict):
-    # Get input from Execute_Builder result - ensure it's properly formatted JSON
+    print("[CheckerAgent] Starting analysis...")
+    
+    # Get build result and current code
     executable_result = state.get("Executable_Builder", {})
+    coder_state = state.get("Coder_State")
+    current_code = coder_state.Code if coder_state else ""
     
-    # If it's already a dict, convert to proper JSON format
-    if isinstance(executable_result, dict):
-        input_data = str(executable_result)
-    else:
-        input_data = str(executable_result)
+    # Check build status
+    build_status = executable_result.get("status", "")
+    error_message = executable_result.get("message", "")
     
-    print(f"[CheckerAgent] Processing executable builder result: {input_data}")
+    print(f"[CheckerAgent] Build status: {build_status}")
     
-    messages_user = HumanMessage(content=input_data)
-    messages_system = SystemMessage(content=Prompt_Checker)
+    # Success - no fix needed
+    if build_status == "success":
+        print("[CheckerAgent] Build successful - ending")
+        from State.State import Checker_State
+        return {"Checker_State": Checker_State(message="finished build")}
     
-    # Get response from LLM with tools
-    response = llm_with_tools.invoke([messages_system, messages_user])
+    # Error - need to fix code
+    if not current_code:
+        print("[CheckerAgent] No code to fix")
+        from State.State import Checker_State
+        return {"Checker_State": Checker_State(message="error")}
     
-    # Check if LLM wants to use tools
-    if hasattr(response, 'tool_calls') and response.tool_calls:
-        print(f"[CheckerAgent] LLM requested {len(response.tool_calls)} tool calls")
-        return {
-            "messages": [response],
-            "Checker_State": {"message": "tool_calls_requested"}
-        }
-    else:
-        # No tool calls, try to extract checker state from content
-        try:
-            # Parse JSON response from LLM if possible
-            content = response.content.strip()
-            print(f"[CheckerAgent] LLM Response: {content}")
-            
-            # Try to parse as JSON first
-            import json
-            try:
-                parsed_response = json.loads(content)
-                if isinstance(parsed_response, dict) and "message" in parsed_response:
-                    checker_message = parsed_response["message"]
-                    print(f"[CheckerAgent] Parsed JSON message: {checker_message}")
-                else:
-                    raise ValueError("Invalid JSON structure")
-            except (json.JSONDecodeError, ValueError):
-                # Fallback to simple text parsing
-                content_lower = content.lower()
-                if "finished build" in content_lower:
-                    checker_message = "finished build"
-                elif "success download lib and need to rebuild" in content_lower:
-                    checker_message = "success download lib and need to rebuild"
-                elif "unhandled error" in content_lower:
-                    checker_message = "error"
-                else:
-                    # For syntax errors or detailed feedback, keep the full content
-                    checker_message = content
-                
-                print(f"[CheckerAgent] Fallback parsed message: {checker_message}")
-                
-            # Create Checker_State
-            checker_dict = {"message": checker_message}
-            checker_json = str(checker_dict)
-            
-            # normalize existing Mess_Checker to a list of strings
-            current_msgs = state.get("Mess_Checker", [])
-            if current_msgs is None:
-                current_msgs = []
-            if not isinstance(current_msgs, list):
-                current_msgs = [str(current_msgs)]
-            new_messages = current_msgs + [checker_json]
+    print(f"[CheckerAgent] Error detected, using LLM to fix...")
+    
+    # Use LLM to analyze error and fix code
+    prompt = f"""You are a code fixer. Fix the following code based on the error:
 
-            return {
-                "Checker_State": checker_dict, 
-                "Mess_Checker": new_messages,
-                "messages": [response]
-            }
+ERROR: {error_message}
+
+CURRENT CODE:
+{current_code}
+
+Return ONLY the fixed code, nothing else. Fix common issues like:
+- Missing semicolons
+- Missing includes
+- Syntax errors
+- Variable declarations
+
+FIXED CODE:"""
+    
+    # Get LLM response using existing base_llm
+    try:
+        response = base_llm.invoke([HumanMessage(content=prompt)])
+        raw_code = response.content.strip()
+        
+        # Clean up markdown formatting if present
+        fixed_code = raw_code
+        if "```" in fixed_code:
+            # Remove markdown code blocks
+            lines = fixed_code.split('\n')
+            code_lines = []
+            in_code_block = False
             
-        except Exception as e:
-            print(f"[CheckerAgent] Error parsing response: {e}")
-            return {
-                "Checker_State": {"message": "error"}, 
-                "Mess_Checker": state.get("Mess_Checker", []) + ["error"],
-                "messages": [response]
-            }
+            for line in lines:
+                if line.startswith('```'):
+                    in_code_block = not in_code_block
+                    continue
+                if in_code_block or not any(line.startswith(p) for p in ['```', '## ', '# ', '**']):
+                    code_lines.append(line)
+            
+            fixed_code = '\n'.join(code_lines).strip()
+        
+        print(f"[CheckerAgent] Code fixed by LLM (cleaned)")
+        print(f"[CheckerAgent] Original code length: {len(current_code)} chars")
+        print(f"[CheckerAgent] Fixed code length: {len(fixed_code)} chars")
+        print(f"[CheckerAgent] Fixed code preview: {fixed_code[:100]}...")
+        
+        # Update Coder_State with fixed code - use proper BaseModel
+        from State.State import Coder_State, Checker_State
+        
+        return {
+            "Coder_State": Coder_State(Code=fixed_code),
+            "Checker_State": Checker_State(message="code fixed")
+        }
+        
+    except Exception as e:
+        print(f"[CheckerAgent] LLM error: {e}")
+        from State.State import Checker_State
+        return {"Checker_State": Checker_State(message="error")}

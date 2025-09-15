@@ -2,16 +2,34 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_ollama import ChatOllama
 from State.State import MalGenAgentState, Developer_State
 from Prompt.Prompt import Prompt_Developer
+from langchain_openai import ChatOpenAI
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
-# Create LLM with structured output
-llm = ChatOllama(model="qwen2.5-coder:7b", temperature=0.1)
-structured_llm = llm.with_structured_output(Developer_State)
+OLLAMA = os.getenv("OLLAMA", "false").lower()
+MODEL = os.getenv("MODEL", "Qwen2.5-coder:7b")
+BASE_URL = os.getenv("BASE_URL", "")
+API_KEY = os.getenv("API_KEY", "")
+if OLLAMA == "true":
+    base_llm = ChatOllama(model=MODEL, temperature=0.1)
+else:
+    if BASE_URL:
+        base_llm = ChatOpenAI(model=MODEL, temperature=0.1, base_url=BASE_URL, api_key=API_KEY)
+    else:
+        base_llm = ChatOpenAI(model=MODEL, temperature=0.1, api_key=API_KEY)
+
+# Bind with Task_State since we create one task per loop iteration
+from State.State import Task_State
+structured_llm = base_llm.with_structured_output(Task_State)
 
 def DeveloperAgent(state: dict):
     # Get user messages from state (safe access)
-    list_task = state.get("Planner_State", {}).get("Subtask", [])
-    language = state.get("Planner_State", {}).get("Language", "Python")
-    operating_system = state.get("Planner_State", {}).get("Operating_System", "Linux")
+    # Access BaseModel properly
+    planner_state = state.get("Planner_State")
+    list_task = planner_state.Subtask if planner_state else []
+    language = planner_state.Language if planner_state else "Python"
+    operating_system = planner_state.Operating_System if planner_state else "Linux"
     list_response = []
     list_response_json = []
 
@@ -19,11 +37,11 @@ def DeveloperAgent(state: dict):
         messages_user = HumanMessage(content=str(task + " in " + language + " for " + operating_system))
         messages_system = SystemMessage(content=Prompt_Developer)
 
-        # Get structured response directly from LLM
-        developer_state = structured_llm.invoke([messages_system, messages_user])
-        # store as dict for internal state and JSON string for message reducer
-        list_response.append(developer_state.model_dump())
-        list_response_json.append(developer_state.model_dump_json())
+        # Get structured response as Task_State object
+        task_state = structured_llm.invoke([messages_system, messages_user])
+        # Store Task_State BaseModel object and JSON
+        list_response.append(task_state)  # Task_State BaseModel
+        list_response_json.append(task_state.model_dump_json())
 
     # Normalize existing Mess_Developer to a list of strings and append new JSON messages
     current_msgs = state.get("Mess_Developer", [])
@@ -33,4 +51,7 @@ def DeveloperAgent(state: dict):
         current_msgs = [str(current_msgs)]
     new_messages = current_msgs + list_response_json
 
-    return {"Developer_State": {"Task_State": list_response}, "Mess_Developer": new_messages}
+    # Return BaseModel properly
+    from State.State import Developer_State
+    dev_state = Developer_State(Task_State=list_response)
+    return {"Developer_State": dev_state, "Mess_Developer": new_messages}
