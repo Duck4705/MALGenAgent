@@ -48,6 +48,10 @@ Tạo tài khoản langchain và lấy LANGCHAIN_API_KEY ở https://www.langcha
 ```.env
 LANGCHAIN_API_KEY="replace this by langchain api key"
 LANGCHAIN_TRACING_V2=true
+OLLAMA=false # true if use Ollama
+BASE_URL= # If you do not specify a URL, the default OpenAI URL will be used.
+MODEL=
+API_KEY= 
 ```
 Lưu ý rằng hiện tại dự MalGenAgent đang sử dụng ollama để sử dụng các llm open source. Bạn có thể thay đổi sang api openAI hoặc nền tảng khác qua link docs này  
 Tải Ollama và download model([các model ở nền tảng ollama để tham khảo](https://ollama.com/search))
