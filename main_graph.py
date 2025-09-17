@@ -1,12 +1,11 @@
-from langgraph.graph import START, END, StateGraph, MessagesState
+from langgraph.graph import START, END, StateGraph
 from PlannerAgent.PlannerAgent import PlannerAgent
 from DeveloperAgent.DeveloperAgent import DeveloperAgent
 from State.State import MalGenAgentState
 from CoderAgent.Coder import CoderAgent
 from CheckerAgent.Checker import CheckerAgent
-from ToolsNode.ToolsNode import ToolsNode
 from RoutingLogic.Router import should_continue
-from Tools.Tools import execute_command, ExecutableBuilder
+from Tools.Tools import ExecutableBuilder
 
 #Execute Builder Node
 def Execute_Builder(state: dict):
@@ -35,7 +34,6 @@ builder.add_node("DeveloperAgent", DeveloperAgent)
 builder.add_node("CoderAgent", CoderAgent)
 builder.add_node("Execute_Builder", Execute_Builder)
 builder.add_node("CheckerAgent", CheckerAgent)
-builder.add_node("ToolsNode", ToolsNode)
 
 # Build Edges
 builder.add_edge(START, "PlannerAgent")
@@ -49,14 +47,12 @@ builder.add_conditional_edges(
     "CheckerAgent",
     should_continue,
     {
-        "tools": "ToolsNode",
         "execute_builder": "Execute_Builder",
         "end": END
     }
 )
 
-# Edge from ToolsNode back to CheckerAgent
-builder.add_edge("ToolsNode", "CheckerAgent")
+
 
 # Compile graph
 graph = builder.compile()

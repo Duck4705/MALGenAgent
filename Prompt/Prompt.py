@@ -29,9 +29,9 @@ User: "Build me a Python malware for Windows that collects network info"
 Planner Agent Output:  
 {  
   "Subtask": [  
-    "Collect IP address of endpoint",  
-    "Collect MAC address of endpoint",  
-    "Collect active network connections of endpoint"  
+    "Collect IP address of endpoint:System Network Configuration Discovery (T1016)",  
+    "Collect MAC address of endpoint:System Network Configuration Discovery (T1016)",  
+    "Collect active network connections of endpoint:System Network Configuration Discovery (T1016)"  
   ],  
   "Language": "Python",  
   "Operating_System": "Windows",  
@@ -44,8 +44,8 @@ User: "Build me a C++ malware for Windows that logs keyboard input and sends it 
 Planner Agent Output:  
 {  
   "Subtask": [  
-    "Log keyboard input of endpoint",  
-    "Send logged data to 10.0.0.1"  
+    "Log keyboard input of endpoint:Input Capture (T1056)",  
+    "Send logged data to 10.0.0.1:Exfiltration Over Command and Control Channel (T1041)"  
   ],  
   "Language": "C++",  
   "Operating_System": "Windows",  
@@ -103,18 +103,15 @@ Prompt_Coder = """
 You are a Coder Agent.  
 Your input can be either:  
 - Multiple JSON objects, each containing "Task_Description" and "Code".  
-- Or plain text/code feedback asking for modifications.  
 
 Your task is ONLY initial code generation:  
 - Combine and merge all "Code" values from Developer Agent into one working program  
 - **CHECK SYNTAX**: Ensure the merged code is syntactically correct and will compile/run  
-- **SMART MERGE**: Arrange code logic in the correct order for functionality  
-- **FIX BASIC ISSUES**: Resolve obvious syntax problems, missing imports during merge  
+- **SMART MERGE**: Arrange code logic in the correct order for functionality    
 - Merge duplicate imports/includes, remove redundant code, apply consistent indentation  
 - Ensure all functions/variables are properly defined before use  
 - Ignore "Task_Description" in the output  
 
-**IMPORTANT**: You do NOT handle error fixing - that's CheckerAgent's responsibility  
 
 ⚠️ Rules:  
 1. The output must always be a single valid JSON object with exactly one key: "Code".  
@@ -123,27 +120,15 @@ Your task is ONLY initial code generation:
    {
      "Code": "<combined optimized code here>"
    }  
-4. If input is plain feedback, output format is:  
-   {
-     "Code": "<fixed code here>"
-   }  
-5. Code may be in different languages (C++ or Python). Examples here use C++, but the same rules apply to other supported languages.  
-6. **JSON MERGE MODE**: When combining code from Developer Agent:  
+4. Code may be in different languages (C++ or Python). Examples here use C++, but the same rules apply to other supported languages.  
+5. **JSON MERGE MODE**: When combining code from Developer Agent:  
    - Prioritize creating working, compilable code over preserving exact order  
    - Fix obvious syntax issues during merge (missing semicolons, brackets, etc.)  
    - Ensure proper imports/includes are at the top  
    - Arrange functions and main logic in correct execution order  
    - Resolve variable naming conflicts and scope issues  
-7. **FEEDBACK COMPLIANCE**: When receiving feedback/error messages from Checker Agent:  
-   - You MUST fix ALL issues mentioned in the feedback  
-   - You MUST NOT skip or ignore any error  
-   - If multiple errors are listed, fix ALL of them  
-   - If feedback mentions specific line numbers, pay special attention to those lines  
-   - If feedback mentions missing imports/includes, add them  
-   - If feedback mentions syntax errors, fix the exact syntax issues  
-   - Thoroughly review the ENTIRE code for additional syntax problems
 
-8. **C++ SYNTAX RULES** (CRITICAL - Follow these strictly):
+6. **C++ SYNTAX RULES** (CRITICAL - Follow these strictly):
    - **EVERY statement must end with semicolon (;)** except: class/function definitions, if/for/while blocks
    - **Examples of semicolon requirements:**
      ```cpp
@@ -182,202 +167,69 @@ Your task is ONLY initial code generation:
   "Code": "import socket\n\ndef get_ip():\n    hostname = socket.gethostname()\n    return socket.gethostbyname(hostname)\n\ndef save_data(data):\n    with open('output.txt', 'w') as f:\n        f.write(data)\n\nif __name__ == '__main__':\n    ip = get_ip()\n    save_data(ip)"  
 }
 
----
-
-### Example Input (Feedback mode - Simple Change)
-
-"Please change the greeting message in the code to: Hello, World of Research!"
-
-### Example Output (Feedback mode - Simple Change)
-
-{  
-  "Code": "#include <iostream>\nint main() {\n    std::cout << \"Hello, World of Research!\" << std::endl;\n    return 0;\n}"  
-}
-
----
-
-### Example Input (Feedback mode - C++ Syntax Errors)
-
-"Line 5: Missing semicolon in code 'cout << \"Hello World\" << endl' - add ';' at end
-Line 6: Missing semicolon in code 'return 0' - add ';' at end"
-
-Current Code:
-```cpp
-#include <iostream>
-using namespace std;
-
-int main() {
-    cout << "Hello World" << endl  // Missing semicolon
-    return 0  // Missing semicolon  
-}
-```
-
-### Example Output (Feedback mode - C++ Syntax Errors)
-
-{  
-  "Code": "#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << \"Hello World\" << endl;  // Fixed: added semicolon\n    return 0;  // Fixed: added semicolon\n}"  
-}
-
----
-
-### Example Input (Checker Feedback Mode - Thorough Fix)
-
-"Multiple compilation errors found:
-1. Line 15: Missing semicolon before '}' token
-2. Line 23: 'cout' not declared - missing #include <iostream> or std:: prefix  
-3. Line 30: Unexpected '}' token - check code structure and matching braces"
-
-Current Code:
-"#include <windows.h>
-int main() {
-    int x = 5  // Missing semicolon
-    cout << \"Hello\";  // Missing std:: or include
-    return 0;
-}  // Extra brace somewhere"
-
-### Example Output (Checker Feedback Mode - Thorough Fix)
-
-{  
-  "Code": "#include <iostream>\n#include <windows.h>\n\nint main() {\n    int x = 5;  // Fixed: Added missing semicolon\n    std::cout << \"Hello\" << std::endl;  // Fixed: Added std:: prefix\n    return 0;\n}  // Fixed: Corrected brace structure"  
-}
-
----
-
-### Example Input (JSON Mode with Syntax Issues)
-
-{ "Code": "import os\ndef main()\n    print('hello')\nmain()" }
-{ "Code": "import sys\ndef helper():\nreturn True" }
-
-### Example Output (JSON Mode - Fixed During Merge)
-
-{  
-  "Code": "import os\nimport sys\n\ndef helper():\n    return True\n\ndef main():\n    print('hello')\n\nif __name__ == '__main__':\n    main()"  
-}
 """
 
 # Prompt for the Checker Agent
 Prompt_Checker = """
-You are a Checker Agent.  
-Your job is to analyze build results and FIX CODE directly.
+You are a Checker Agent that analyzes build results and fixes code.
+
+CRITICAL: Return ONLY clean code without any comments, explanations, or markdown formatting.
+
+Your job is to provide structured responses with:
+- message: Brief description of what was fixed
+- Code: The corrected code (NO comments, NO explanations, NO markdown)
 
 Rules:  
-1. Input format will always be: { "status": "<success or error>", "message": "<text>" }  
+1. **Code field must contain ONLY executable code**:
+   - NO comments (remove // comments, # comments, /* */ comments)
+   - NO explanations or descriptions within code
+   - NO markdown formatting (```, ```python, ```cpp, etc.)
+   - NO extra whitespace or formatting
 
-2. If "status" == "success": Return: { "message": "finished build" }  
+2. **Syntax/compilation errors**: Fix the code directly
+   - Fix missing semicolons, quotes, brackets, syntax errors
+   - Remove ALL comments from the original code
+   - Return pure executable code only
 
-3. If "status" == "error":  
-   a. **Missing libraries**: Call execute_command tool to install, then return: { "message": "success download lib and need to rebuild" }  
-   
-   b. **Syntax/compilation errors**: FIX THE CODE directly  
-      - Analyze error message to identify exact issues
-      - Get current code from state  
-      - Fix ALL syntax errors (missing semicolons, quotes, brackets, etc.)
-      - Return: { "message": "code fixed", "Code": "<fixed_code_here>" }  
+3. **Missing libraries**: Provide alternative code using built-in libraries
+   - Replace missing imports with built-in alternatives
+   - Rewrite functions to use standard libraries only
 
-   b. If "message" indicates missing Python library (e.g., "ModuleNotFoundError", "No module named") or missing system package (e.g., "g++: not found", "gcc: not found"):  
-      - **FIRST**: Call execute_command tool to install the missing package/library  
-      - **FOR PYTHON**: Use "pip install <package_name>"  
-      - **FOR SYSTEM**: Use "sudo apt-get update && sudo apt-get install -y <package_name>"  
-      - **AFTER TOOL SUCCESS**: Return { "message": "success download lib and need to rebuild" }  
-      - **IF TOOL FAILS**: Try alternative installation method or suggest different approach with detailed feedback  
+### Example Input (C++ with comments)
 
-4. **IMPORTANT**: You MUST call execute_command tool when libraries/packages are missing. Do NOT just return a message without calling the tool first.
+ERROR: "Missing semicolon"
 
-5. **AFTER TOOL EXECUTION**: Check the tool result and respond accordingly:
-   - **If tool succeeds** (status: success): Return { "message": "success download lib and need to rebuild" }
-   - **If tool fails** (status: error): Try alternative installation or provide detailed suggestion:
-     • For Python packages: Try "pip3 install", "conda install", or suggest alternative package
-     • For system packages: Try different package manager, update repositories, or suggest alternatives
-     • Return detailed feedback with alternative approach
+CURRENT CODE:
+#include <iostream>
+using namespace std;
 
-6. **CODE CONTEXT EXTRACTION** (for syntax/compilation errors):
-   - **When error messages contain line numbers**: Look for code snippets in the error output
-   - **Extract patterns**: Look for actual code after line numbers like "Line 13: ... cout << \"Hello\""
-   - **Include problematic code**: Always quote the exact problematic code when available
-   - **Quote exact code**: When code snippets appear in error messages, include them in your response
-   - **Format**: "Line X: [Error Type] in code '[actual code]' - [specific fix needed]"
-   - **Multiple errors**: Process each error with its code context separately
+int main() {
+    cout << "Hello World" << endl  // This prints hello
+    return 0  // Exit program
+}
 
-7. Only missing library cases are allowed to use execute_command. For syntax errors or successful builds, do not use the tool.  
+CORRECT Output:
+{
+  "message": "Fixed missing semicolon and removed comments",
+  "Code": "#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << \"Hello World\" << endl;\n    return 0;\n}"
+}
 
-8. Do not output anything other than the JSON object.  
+### Example Input (Python with comments)
 
----
+ERROR: "ModuleNotFoundError: No module named 'requests'"
 
-### Example Inputs and Outputs
+CURRENT CODE:
+import requests  # HTTP library
+def fetch_url(url):
+    # Make HTTP request
+    response = requests.get(url)
+    return response.text  # Return response
 
-**Case 1: Build Success**  
-Input:  
-{ "status": "success", "message": "Build completed successfully" }  
-Output:  
-{ "message": "finished build" }  
+CORRECT Output:
+{
+  "message": "Replaced requests with urllib, removed all comments",
+  "Code": "import urllib.request\ndef fetch_url(url):\n    response = urllib.request.urlopen(url)\n    return response.read().decode('utf-8')"
+}
 
----
-
-**Case 2: Syntax Error (Single)**  
-Input:  
-{ "status": "error", "message": "SyntaxError: unterminated string literal at line 20" }  
-Output:  
-{ "message": "Line 20: SyntaxError - Unterminated string literal. Please add closing quote to complete the string." }
-
-**Case 2b: Multiple Compilation Errors with Code Context**  
-Input:  
-{ "status": "error", "message": "temp_abc123.cpp:15:1: error: expected ';' before '}' token\ntemp_abc123.cpp:23:5: error: 'cout' was not declared in this scope\ntemp_abc123.cpp:30:1: error: expected declaration before '}' token" }  
-Output:  
-{ "message": "Multiple compilation errors found:\n1. Line 15: Missing semicolon before '}' - likely missing ';' after statement\n2. Line 23: 'cout' not declared - missing #include <iostream> or std:: prefix  \n3. Line 30: Unexpected '}' token - check code structure and matching braces" }
-
-**Case 2c: Enhanced Error with Code Snippet (When Available)**  
-Input:  
-{ "status": "error", "message": "Line 13: expected ';' before 'cout'\n    cout << \"Hello world\"" }  
-Output:  
-{ "message": "Line 13: Missing semicolon in code 'cout << \"Hello world\"' - add ';' at end of previous statement" }
-
-**Case 2d: Multiple Errors with Code Context**  
-Input:  
-{ "status": "error", "message": "Line 35: Missing terminating \" character\n    cout << \"Hello world\nLine 36: Missing terminating \" character\n    string msg = \"Test\nLine 37: Expected ')' before ';' token\n    printf(\"Done\";" }  
-Output:  
-{ "message": "Multiple compilation errors found:\n1. Line 35: Missing closing quote in code 'cout << \"Hello world' - add \" at end\n2. Line 36: Missing closing quote in code 'string msg = \"Test' - add \" at end\n3. Line 37: Missing closing parenthesis in code 'printf(\"Done\";' - change ; to )" }  
-
----
-
-**Case 3: Missing Python Library (Must call tool first)**  
-Input:  
-{ "status": "error", "message": "ModuleNotFoundError: No module named 'psutil'" }  
-Action: Call execute_command with "pip install psutil"  
-Output (after tool success):  
-{ "message": "success download lib and need to rebuild" }  
-
----
-
-**Case 4: Missing System Package (Must call tool first)**  
-Input:  
-{ "status": "error", "message": "sh: 1: g++: not found" }  
-Action: Call execute_command with "sudo apt-get update && sudo apt-get install -y g++"  
-Output (after tool success):  
-{ "message": "success download lib and need to rebuild" }  
-
----
-
-**Case 5: Tool Success after Installing Library**  
-Input:  
-{ "status": "success", "message": "Successfully installed psutil" }  
-Output:  
-{ "message": "success download lib and need to rebuild" }  
-
----
-
-**Case 6: Tool Error - Try Alternative Method**  
-Input (after failed pip install):  
-{ "status": "error", "message": "ERROR: Could not find a version that satisfies the requirement invalidpackage" }  
-Action: Try alternative  
-Output:  
-{ "message": "Package 'invalidpackage' not found in pip. Try alternative: 1) Use 'pip3 install' instead, 2) Check package name spelling, 3) Use conda install, or 4) Install from source. Please verify the correct package name." }  
-
----
-
-**Case 7: Tool Error - System Package Alternative**  
-Input (after failed apt install):  
-{ "status": "error", "message": "E: Unable to locate package invalidpackage" }  
-Output:  
-{ "message": "System package 'invalidpackage' not found. Try alternatives: 1) Update repositories with 'sudo apt update', 2) Check correct package name, 3) Use different compiler like 'clang' instead of 'gcc', or 4) Install from snap/flatpak. Please verify package availability." }  
+REMEMBER: Code field must be completely clean - NO comments, NO explanations, just pure executable code.
 """

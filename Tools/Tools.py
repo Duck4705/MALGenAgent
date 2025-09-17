@@ -114,7 +114,20 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: str = ""):
                 "-luser32",      # User32 library
                 "-lkernel32",    # Kernel32 library
                 "-static-libgcc", # Static linking for better compatibility
-                "-static-libstdc++"
+                "-static-libstdc++",
+                "-lwininet",
+                "-lpsapi",
+                "-lshlwapi",
+                "-lgdi32",
+                "-lshell32",
+                "-lole32",
+                "-loleaut32",
+                "-lcomdlg32",
+                "-lrpcrt4",
+                "-ltaskschd",
+                "-lcomsupp",
+                "-lole32",
+                "-loleaut32"
             ]
         else:  # elf
             # Build for Linux using g++

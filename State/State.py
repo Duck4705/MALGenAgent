@@ -23,19 +23,14 @@ class Coder_State(BaseModel):
 # Checker State
 class Checker_State(BaseModel):
     message: str
-    Code: Optional[str] = None  # For code fixes
-
     
 class MalGenAgentState(TypedDict):
     input: str
-    messages: Annotated[list, add_messages]  # For tool calls and responses
     Mess_Planner: Annotated[list, add_messages]
     Mess_Coder: Annotated[list, add_messages]
     Mess_Developer: Annotated[list, add_messages]
-    Mess_Checker: Annotated[list, add_messages]
     Planner_State: Planner_State
     Developer_State: Developer_State
     Coder_State: Coder_State
     Checker_State: Checker_State
     Executable_Builder: dict  # Result from ExecutableBuilder
-    Tool_Results: list[dict]  # Results from tool executions
