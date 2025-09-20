@@ -54,14 +54,21 @@ def CheckerAgent(state: dict):
     
     # Prepare messages for structured LLM like CoderAgent
     system_prompt = Prompt_Checker
+    
+    # Format the current code properly depending on its type
+    if isinstance(current_code, list):
+        # Join list of code lines with newlines for proper display
+        formatted_code = '\n'.join(current_code)
+    else:
+        # Fallback if code is not a list
+        formatted_code = str(current_code)
+        
     user_prompt = f"""Please analyze and fix the compilation error.
-
 ERROR: {error_message}
 
 CURRENT CODE:
-{current_code}
-
-Provide both a message describing what was fixed and the corrected code."""
+{formatted_code}
+Fix the code according to the rules and return the structured response."""
     
     messages_system = SystemMessage(content=system_prompt)
     messages_user = HumanMessage(content=user_prompt)

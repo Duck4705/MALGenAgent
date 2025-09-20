@@ -13,17 +13,17 @@ class Planner_State(BaseModel):
 # Developer State
 class Task_State(BaseModel):
     Task_Description: str
-    Code: str
+    Code: list[str]  # Mỗi phần tử là một dòng code
 class Developer_State(BaseModel):
     Task_State: list[Task_State]
 # Coder State
 class Coder_State(BaseModel):
-    Code: str
+    Code: list[str]  # Mỗi phần tử là một dòng code
 
 # Checker State
 class Checker_State(BaseModel):
     message: str
-    
+ 
 class MalGenAgentState(TypedDict):
     input: str
     Mess_Planner: Annotated[list, add_messages]

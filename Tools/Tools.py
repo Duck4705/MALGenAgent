@@ -4,22 +4,22 @@ import hashlib
 import shutil
 from pathlib import Path
 
-def ExecutableBuilder(type_file: str, language: str = "Python", code: str = ""):
+def ExecutableBuilder(type_file: str, language: str = "Python", code: list = None):
     """
     Build code to executable using PyInstaller (Python) or g++ (C++)
     
     Args:
         type_file: Type of executable ("elf" for Linux, "exe" for Windows)
         language: Programming language ("Python" or "C++")
-        code: Source code to build into executable
+        code: Source code as a list of strings (each string is one line of code)
     
     Returns:
         dict: Build result with status and output path
     """
     
     # Validate inputs
-    if not code or not code.strip():
-        return {"status": "error", "message": "code is required"}
+    if not code or not isinstance(code, list) or len(code) == 0:
+        return {"status": "error", "message": "code must be a non-empty list of strings"}
     
     if language.lower() not in ["python", "c++"]:
         return {"status": "error", "message": f"Language '{language}' not supported. Supported: Python, C++"}
@@ -27,11 +27,11 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: str = ""):
     if type_file.lower() not in ["elf", "exe"]:
         return {"status": "error", "message": f"Type '{type_file}' not supported. Supported: elf, exe"}
     
-    # Convert JSON dump format (\n) to actual newlines
+    # Process the code list
     try:
-        # Replace \n with actual newlines to format code properly
-        formatted_code = code.replace('\\n', '\n')
-        print(f"[ExecutableBuilder] Formatted {language} code from JSON dump")
+        # Join the code lines with newlines
+        formatted_code = '\n'.join(code)
+        print(f"[ExecutableBuilder] Formatted {language} code from array")
         
         code_bytes = formatted_code.encode('utf-8')
         code_hash = hashlib.md5(code_bytes).hexdigest()[:8]  # Use first 8 chars of MD5
@@ -179,9 +179,9 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: str = ""):
         else:
             error_msg = result.stderr if result.stderr else result.stdout
             if language.lower() == "python":
-                return {"status": "error", "message": f"PyInstaller failed: {error_msg}"}
+                return {"status": "error", "message": f"PyInstaller failed: {error_msg}", "code": code}
             else:
-                return {"status": "error", "message": f"g++ compilation failed: {error_msg}"}
+                return {"status": "error", "message": f"g++ compilation failed: {error_msg}", "code": code}
     
     except FileNotFoundError as e:
         if language.lower() == "python":
