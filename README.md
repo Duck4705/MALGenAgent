@@ -53,7 +53,7 @@ BASE_URL= # If you do not specify a URL, the default OpenAI URL will be used.
 MODEL=
 API_KEY= 
 ```
-Lưu ý rằng hiện tại dự MalGenAgent đang sử dụng ollama để sử dụng các llm open source. Bạn có thể thay đổi sang api openAI hoặc nền tảng khác qua link docs này  
+Lưu ý rằng hiện tại dự MalGenAgent đang sử dụng ollama để sử dụng các llm open source. Bạn có thể thay đổi sang api openAI hoặc nền tảng khác qua link [docs](./docs/Guide_Change_Model_LLM.md)  này  
 Tải Ollama và download model([các model ở nền tảng ollama để tham khảo](https://ollama.com/search))
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
