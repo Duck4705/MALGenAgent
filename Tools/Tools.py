@@ -130,8 +130,23 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: list = Non
                 "-loleaut32"
             ]
         else:  # elf
-            # Build for Linux using g++
-            cmd = ["g++", str(temp_filename), "-o", output_name]
+            # Build for Linux using g++ with common libraries
+            cmd = [
+                "g++", 
+                str(temp_filename), 
+                "-o", output_name,
+                "-lcurl",           # cURL library for web requests
+                "-lpthread",        # POSIX threads
+                "-lssl",            # OpenSSL library
+                "-lcrypto",         # Crypto library
+                "-lz",              # zlib compression
+                "-ldl",             # Dynamic linking library
+                "-lrt",             # Real-time library
+                "-lm",              # Math library
+                "-lstdc++fs",       # Filesystem library
+                "-static-libgcc",   # Static linking for better compatibility
+                "-static-libstdc++"
+            ]
     
     try:
         print(f"[ExecutableBuilder] Building {language} code -> {output_name} ({type_file.upper()})")
