@@ -170,6 +170,15 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: list = Non
                     print(f"[ExecutableBuilder] Build successful! Executable saved to: {output_path}")
                     return {"status": "success", "message": f"{language} executable built successfully: {output_name}"}
                 else:
+                    # Kiểm tra phần mở rộng file
+                    # Nếu là Windows, thêm phần mở rộng .exe cho output_path
+                    if type_file.lower() == "exe":
+                        output_path_exe = Path("dist") / f"{output_name}.exe"
+                        if output_path_exe.exists():
+                            print(f"[ExecutableBuilder] Build successful! Executable saved to: {output_path_exe}")
+                            return {"status": "success", "message": f"{language} executable built successfully: {output_name}.exe"}
+                    
+                    # Vẫn không tìm thấy file, báo lỗi
                     return {"status": "error", "message": "Build completed but Python executable not found in dist folder"}
             else:
                 # C++ output - check if file exists in current directory first
