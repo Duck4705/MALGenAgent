@@ -138,8 +138,22 @@ Your task is ONLY initial code generation:
    - Every f-string must use triple quotes (`f\"\"\"...\"\"\"`), even if one line.  
    - Never output `'...'` or `"..."`.  
    - Ensure strings are properly closed.  
-4. In C++: keep normal syntax rules, ensure `;`, `#include`, braces, etc.  
-
+4. In C++: 
+   - Keep normal syntax rules, ensure `;`, `#include`, braces, etc.
+   - For Windows API code: ALWAYS include winsock2.h and ws2tcpip.h BEFORE windows.h
+   - Example: `#include <winsock2.h>` then `#include <ws2tcpip.h>` then `#include <windows.h>`
+   - This prevents redefinition errors as windows.h automatically includes the older winsock.h
+5. When writing Windows C++ code:
+   - ALWAYS include winsock2.h and ws2tcpip.h BEFORE windows.h
+   - Example: `#include <winsock2.h>` then `#include <ws2tcpip.h>` then `#include <windows.h>`
+   - This prevents redefinition errors as windows.h automatically includes the older winsock.h
+   - Detect undeclared identifiers.
+   - Map them to correct headers using predefined rules:
+     - EXPLICIT_ACCESS, SetEntriesInAcl → #include <aclapi.h>
+     - ITaskService, ITaskFolder, ITaskDefinition → #include <taskschd.h> + #pragma comment(lib, "taskschd.lib")
+     - _variant_t, _bstr_t → #include <comdef.h>
+     - If SHGetFileInfoW used with SHFILEINFO, replace with SHFILEINFOW.
+     - Always insert includes after standard includes.
 ### Example Input:
 { "Task_Description": "Network Collection", "Code": "import socket\ndef get_ip():\n    hostname = socket.gethostname()\n    return socket.gethostbyname(hostname)" }  
 { "Task_Description": "File Operations", "Code": "def save_data(data):\n    with open(\"output.txt\", \"w\") as f:\n        f.write(data)" }  
@@ -197,6 +211,52 @@ Rules:
    - Every f-string must use triple quotes (`f\"\"\"...\"\"\"`), even if single line.  
    - Never output `'...'` or `"..."`.  
    - Always ensure all strings are properly closed.  
+
+5. When writing Windows C++ code:
+   - ALWAYS include winsock2.h and ws2tcpip.h BEFORE windows.h
+   - Example: `#include <winsock2.h>` then `#include <ws2tcpip.h>` then `#include <windows.h>`
+   - Detect undeclared identifiers.
+   - Map them to correct headers using predefined rules:
+     - EXPLICIT_ACCESS, SetEntriesInAcl → #include <aclapi.h>
+     - ITaskService, ITaskFolder, ITaskDefinition → #include <taskschd.h> + #pragma comment(lib, "taskschd.lib")
+     - _variant_t, _bstr_t → #include <comdef.h>
+     - If SHGetFileInfoW used with SHFILEINFO, replace with SHFILEINFOW.
+     - Always insert includes after standard includes.
+   - If using wide string literals (L"..."), always call the wide-character API (e.g., ShellExecuteW, CreateServiceW, RegOpenKeyExW).
+   - When Windows API requires LPWSTR but you pass LPCWSTR, cast with (LPWSTR).
+   - For SetFileAttributesW and similar wide APIs, always use wide string literals (L"...").
+   - When checking return value of ShellExecute, declare as HINSTANCE and cast to (INT_PTR) only in comparisons.
+   - When using GetVersionExW, pass (LPOSVERSIONINFOW)&osvi if osvi is OSVERSIONINFOEXW.
+   - When using getaddrinfo, ensure result is declared as struct addrinfo* not INT_PTR.
+
+ADDITIONAL C++ COMPILER ERRORS AND AUTOMATIC FIXES:
+
+- C4129: unrecognized character escape sequence  
+  Fix rule: Escape backslashes in all string literals.  
+
+- C2440: cannot convert from 'const wchar_t [...]' to 'LPCH'  
+  Fix rule: Use consistent character types. Prefer wide-character APIs.  
+
+- C2664 (SetEntriesInAclW)  
+  Fix rule: Use EXPLICIT_ACCESS_W and SetEntriesInAclW.  
+
+- C2664 (SetNamedSecurityInfoW)  
+  Fix rule: Cast LPCWSTR to (LPWSTR).  
+
+- C4996: GetVersionExA deprecated  
+  Fix rule: Replace with Version Helper APIs or cast properly to GetVersionExW.  
+
+Guidance for the Checker:  
+ - Always prefer wide-character APIs.  
+ - Escape backslashes in all literal strings.  
+ - Add or replace includes as needed.  
+ - Cast properly when Windows API requires LPWSTR but code provides LPCWSTR.  
+ - For ShellExecute return values, declare as HINSTANCE and cast to (INT_PTR) only in comparisons.  
+ - For GetVersionExW, allow `(LPOSVERSIONINFOW)&osvi` when using OSVERSIONINFOEXW.  
+ - For getaddrinfo, ensure `result` is `struct addrinfo*`.  
+
+REMEMBER: Code field must be completely clean - NO comments, NO explanations, just pure executable code.
+
 ### Example Input (C++ with comments)
 
 ERROR: "Missing semicolon"
@@ -246,5 +306,38 @@ CORRECT Output:
   ]
 }
 
-REMEMBER: Code field must be completely clean - NO comments, NO explanations, just pure executable code.
+### Example Input (C++ Windows API)
+
+ERROR: "cannot convert from 'HINSTANCE' to 'INT_PTR'"
+
+CURRENT CODE:
+#include <windows.h>
+#include <shellapi.h>
+#include <iostream>
+
+int main() {
+    INT_PTR result = ShellExecuteW(NULL, L"open", L"cmd.exe", L"/c echo Test", NULL, SW_HIDE);
+    if (result <= 32) {
+        std::cerr << "Failed" << std::endl;
+    }
+    return 0;
+}
+
+CORRECT Output:
+{
+  "message": "Fixed ShellExecute return type and cast",
+  "Code": [
+    "#include <windows.h>",
+    "#include <shellapi.h>",
+    "#include <iostream>",
+    "",
+    "int main() {",
+    "    HINSTANCE hRes = ShellExecuteW(NULL, L\"open\", L\"cmd.exe\", L\"/c echo Test\", NULL, SW_HIDE);",
+    "    if ((INT_PTR)hRes <= 32) {",
+    "        std::cerr << \"Failed\" << std::endl;",
+    "    }",
+    "    return 0;",
+    "}"
+  ]
+}
 """

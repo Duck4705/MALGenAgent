@@ -101,34 +101,16 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: list = Non
             final_output_path.unlink()
             print(f"[ExecutableBuilder] Removed existing C++ output from dist_C++: {output_name}")
         
-        # Build g++ command for C++
+        # Build command for C++
         if type_file.lower() == "exe":
-            # Build for Windows using mingw cross-compiler with Windows libraries
-            cmd = [
-                "x86_64-w64-mingw32-g++", 
-                str(temp_filename), 
-                "-o", output_name,
-                "-lws2_32",      # Winsock2 library
-                "-lwininet",     # WinINet library  
-                "-ladvapi32",    # Advanced API library
-                "-luser32",      # User32 library
-                "-lkernel32",    # Kernel32 library
-                "-static-libgcc", # Static linking for better compatibility
-                "-static-libstdc++",
-                "-lwininet",
-                "-lpsapi",
-                "-lshlwapi",
-                "-lgdi32",
-                "-lshell32",
-                "-lole32",
-                "-loleaut32",
-                "-lcomdlg32",
-                "-lrpcrt4",
-                "-ltaskschd",
-                "-lcomsupp",
-                "-lole32",
-                "-loleaut32"
-            ]
+            # Build for Windows using MSVC cl.exe compiler
+            vcvars = r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+            
+            # Format command to call vcvars and compile with cl.exe
+            cmd_str = f'"{vcvars}" && cl.exe "{temp_filename}" /Fe:"{output_name}" /EHsc /O2 /MT /nologo /W3 user32.lib advapi32.lib kernel32.lib gdi32.lib shell32.lib ole32.lib oleaut32.lib comdlg32.lib rpcrt4.lib ws2_32.lib wininet.lib psapi.lib shlwapi.lib taskschd.lib wbemuuid.lib'
+            
+            # Use shell=True with a string command instead of array
+            cmd = cmd_str
         else:  # elf
             # Build for Linux using g++ with common libraries
             cmd = [
@@ -152,7 +134,12 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: list = Non
         print(f"[ExecutableBuilder] Building {language} code -> {output_name} ({type_file.upper()})")
         
         # Run the build command
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        if language.lower() == "c++" and type_file.lower() == "exe":
+            # Use shell=True for Windows cl.exe command string
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        else:
+            # Use normal array command format for other cases
+            result = subprocess.run(cmd, capture_output=True, text=True)
         
         # Clean up temporary file
         try:
