@@ -160,25 +160,12 @@ def ExecutableBuilder(type_file: str, language: str = "Python", code: list = Non
         operation_type = "Building"
         
     elif language == "golang":
-        # Golang build configuration
-        # Create a unique directory for each build to avoid module conflicts
-        build_dir = tmp_dir / f"go_build_{code_hash}"
-        build_dir.mkdir(exist_ok=True)
-        
-        # Prepare output filename (with appropriate extension for Windows)
-        out_flag = "-o"
-        output_file = output_name
-        
-        # Go build command
+        # Golang build configuration - simple go build command
         cmd = [
             "go", "build",
-            "-v",               # Verbose: in package đang build
-            "-x",               # In chi tiết các lệnh compile/link
-            "-gcflags", "all=-N -l",   # Tắt tối ưu hoá/inlining để debug dễ hơn
-            out_flag, output_file,
+            "-o", output_name,
             str(temp_filename)
         ]
-
         
         use_shell = False
         operation_type = "Building"
