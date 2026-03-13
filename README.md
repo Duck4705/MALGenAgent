@@ -55,6 +55,8 @@ Tải Ollama và download model([các model ở nền tảng ollama để tham k
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull qwen2.5-coder:7b
 ```
+Lưu ý nếu chưa có các thư mục như **dist, dist_C++, dist_Go, bash_script, tmp_file** hãy khởi tạo chúng trong cùng thư mục gốc. 
+Các thư mục **dist, dist_C++, dist_Go, bash_script** lần lượt là là các file thực thi đầu ra **Python, C++, Go, bash script** của MGA  
 Khởi động chương trình 
 ```
 langgraph dev
@@ -88,3 +90,4 @@ MalGenAgent là một bước thử nghiệm trong việc áp dụng mô hình n
 - Thúc đẩy hợp tác giữa các nhà nghiên cứu, sinh viên và cộng đồng để cùng nhau xây dựng một hệ sinh thái nghiên cứu **an toàn – minh bạch – vì mục đích giáo dục.**
   
 Chúng tôi hy vọng MalGenAgent sẽ nhận được sự ủng hộ, đóng góp ý tưởng và phát triển từ cộng đồng để ngày càng hoàn thiện hơn, góp phần vào việc nâng cao khả năng phòng thủ mạng toàn cầu.
+
