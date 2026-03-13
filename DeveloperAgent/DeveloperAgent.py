@@ -1,6 +1,6 @@
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_ollama import ChatOllama
-from State.State import MalGenAgentState, Developer_State
+from State.State import MalGenAgentState, Developer_State, Task_State
 from Prompt.Prompt import Prompt_Developer
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
@@ -20,9 +20,9 @@ else:
         base_llm = ChatOpenAI(model=MODEL, temperature=0.1, api_key=API_KEY)
 
 # Bind with Task_State since we create one task per loop iteration
-from State.State import Task_State
 structured_llm = base_llm.with_structured_output(Task_State)
 
+# Developer Agent
 def DeveloperAgent(state: dict):
     # Get user messages from state (safe access)
     # Access BaseModel properly
@@ -52,6 +52,5 @@ def DeveloperAgent(state: dict):
     new_messages = current_msgs + list_response_json
 
     # Return BaseModel properly
-    from State.State import Developer_State
-    dev_state = Developer_State(Task_State=list_response)
-    return {"Developer_State": dev_state, "Mess_Developer": new_messages}
+    dev_state = Developer_State(Tasks=list_response)
+    return {"Developer_State": dev_state}

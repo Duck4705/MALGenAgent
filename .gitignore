@@ -3,3 +3,11 @@
 .history/
 .env
 venv/
+__pycache__/
+dist/
+dist_C++/
+dist_Go/
+tmp_file/
+build/
+bash_script/
+.langgraph_api/

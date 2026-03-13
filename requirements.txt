@@ -1,9 +1,13 @@
 langgraph 
 langsmith 
 langchain-community 
+langchain==0.3.27
 langchain-openai 
 tavily-python 
 langgraph-cli[inmem] 
 langchain-ollama
-pyinstaller
+pyinstaller==6.19.0
+pyinstaller-hooks-contrib==2026.3
 python-dotenv
+langchain-core==0.3.72
+langchain-text-splitters==0.3.9

@@ -26,9 +26,18 @@ def CoderAgent(state: dict):
     print("[CoderAgent] Processing developer tasks...")
     
     # Access BaseModel properly
+    planner_state = state.get("Planner_State")
     developer_state = state.get("Developer_State")
-    list_task = str(developer_state.Task_State if developer_state else [])
-    messages_user = HumanMessage(content=list_task)
+    
+    # Get Execution_Flow from Planner
+    execution_flow = planner_state.Execution_Flow if planner_state else ""
+    
+    # Get Tasks from Developer
+    list_task = str(developer_state.Tasks if developer_state else [])
+    
+    # Create message with Execution_Flow and Tasks
+    user_content = f"Execution_Flow: {execution_flow}\n\nTasks:\n{list_task}"
+    messages_user = HumanMessage(content=user_content)
     messages_system = SystemMessage(content=Prompt_Coder)
     
     # Get structured response from LLM
@@ -46,4 +55,4 @@ def CoderAgent(state: dict):
         current_msgs = [str(current_msgs)]
     new_messages = current_msgs + [Coder_json]
 
-    return {"Coder_State": Coder_state, "Mess_Coder": new_messages}
+    return {"Coder_State": Coder_state}
