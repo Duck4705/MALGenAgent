@@ -1,7 +1,7 @@
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_ollama import ChatOllama
-from State.State import MalGenAgentState, Developer_State, Task_State
-from Prompt.Prompt import Prompt_Developer
+from src.State.State import MalGenAgentState, Developer_State, Task_State
+from src.Prompt.Prompt import Prompt_Developer
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import os
